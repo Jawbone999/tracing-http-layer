@@ -13,7 +13,7 @@ pub struct Messenger {
 
 impl Messenger {
     pub async fn stop(self) {
-        self.sender.send(Message::Stop);
+        let _ = self.sender.send(Message::Stop);
         self.handler.await.unwrap();
     }
 }

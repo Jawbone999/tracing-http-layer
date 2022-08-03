@@ -41,8 +41,7 @@ impl<S> Layer<S> for HttpLayer
 where
     S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
 {
-    fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
-        let current_span = ctx.lookup_current();
+    fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
         let mut event_visitor = JsonStorage::default();
         event.record(&mut event_visitor);
 
@@ -69,7 +68,7 @@ where
             let msg: Result<HttpMessage, _> = serde_json::from_str(s);
 
             if let Ok(http) = msg {
-                self.sender.send(Message::Http(http));
+                let _ = self.sender.send(Message::Http(http));
             }
         }
     }

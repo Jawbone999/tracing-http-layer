@@ -13,9 +13,13 @@ struct SmokeJson {
 
 #[test]
 async fn smoke() {
-    let (layer, messenger) = HttpLayer::builder().build();
+    let (http_layer, messenger) = HttpLayer::builder().build();
+    let fmt_layer = tracing_subscriber::fmt::layer().pretty();
 
-    tracing_subscriber::registry().with(layer).init();
+    tracing_subscriber::registry()
+        .with(fmt_layer)
+        .with(http_layer)
+        .init();
 
     let data = SmokeJson {
         foo: "bar".to_string(),
