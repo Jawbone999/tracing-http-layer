@@ -5,7 +5,7 @@ use reqwest::Client;
 
 pub struct HttpLayerBuilder<T: IntoHttpMessage> {
     pub client: Option<Client>,
-    pub _type: PhantomData<T>,
+    _type: PhantomData<T>,
 }
 
 impl<T: IntoHttpMessage> Default for HttpLayerBuilder<T> {
