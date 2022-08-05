@@ -1,5 +1,5 @@
 [package]
-name = "tracing_http_layer"
+name = "tracing-http-layer"
 version = "0.1.0"
 edition = "2021"
 
