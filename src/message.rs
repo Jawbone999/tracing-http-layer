@@ -14,14 +14,14 @@ pub enum Message {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HttpMessage {
     #[serde_as(as = "DisplayFromStr")]
-    pub(crate) method: Method,
+    pub method: Method,
 
     #[serde_as(as = "DisplayFromStr")]
-    pub(crate) url: Url,
+    pub url: Url,
 
-    pub(crate) headers: HashMap<String, String>,
+    pub headers: HashMap<String, String>,
 
-    pub(crate) json: Option<Value>,
+    pub json: Option<Value>,
 }
 
 impl HttpMessage {

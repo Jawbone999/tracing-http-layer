@@ -1,10 +1,11 @@
+use std::marker::PhantomData;
+
 use crate::{
     config::HttpLayerBuilder,
     message::Message,
     messenger::{messenger, Messenger},
-    HttpMessage,
+    IntoHttpMessage,
 };
-use serde_json::Value::String;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tracing::{Event, Subscriber};
 use tracing_bunyan_formatter::JsonStorage;
@@ -13,21 +14,23 @@ use tracing_subscriber::{layer::Context, Layer};
 pub static HTTP_MESSAGE_FIELD_NAME: &str = "http_message";
 pub static MESSAGE_FIELD_NAME: &'static str = "message";
 
-pub struct HttpLayer {
+pub struct HttpLayer<T: IntoHttpMessage> {
     sender: UnboundedSender<Message>,
+    _type: PhantomData<T>,
 }
 
-impl HttpLayer {
-    pub fn builder() -> HttpLayerBuilder {
+impl<T: IntoHttpMessage> HttpLayer<T> {
+    pub fn builder() -> HttpLayerBuilder<T> {
         HttpLayerBuilder::default()
     }
 
-    pub fn new(config: HttpLayerBuilder) -> (Self, Messenger) {
+    pub fn new(config: HttpLayerBuilder<T>) -> (Self, Messenger) {
         let (sender, receiver) = mpsc::unbounded_channel();
 
         (
             Self {
                 sender: sender.clone(),
+                _type: PhantomData,
             },
             Messenger {
                 sender,
@@ -37,39 +40,35 @@ impl HttpLayer {
     }
 }
 
-impl<S> Layer<S> for HttpLayer
+impl<S, T> Layer<S> for HttpLayer<T>
 where
     S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    T: IntoHttpMessage + 'static,
 {
     fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
         let mut event_visitor = JsonStorage::default();
         event.record(&mut event_visitor);
 
-        // Only continue if the field is set to true.
-        match event_visitor
+        let http_message = match event_visitor
             .values()
             .get(HTTP_MESSAGE_FIELD_NAME)
-            .map(|v| v.as_bool())
+            .map(|v| v.as_str().map(|s| serde_json::from_str::<T>(s)))
         {
-            Some(Some(true)) => {}
+            Some(Some(Ok(v))) => v,
             _ => return,
-        }
+        };
 
-        // Get the message, only continue if it is a valid HttpMessage.
-        let http_message = event_visitor
+        let message = match event_visitor
             .values()
             .get(MESSAGE_FIELD_NAME)
-            .map(|v| match v {
-                String(s) => Some(s.as_str()),
-                _ => None,
-            });
+            .map(|v| v.as_str())
+        {
+            Some(Some(s)) => s,
+            _ => return,
+        };
 
-        if let Some(Some(s)) = http_message {
-            let msg: Result<HttpMessage, _> = serde_json::from_str(s);
+        let http = http_message.into_http_message(message);
 
-            if let Ok(http) = msg {
-                let _ = self.sender.send(Message::Http(http));
-            }
-        }
+        let _ = self.sender.send(Message::Http(http));
     }
 }
