@@ -6,13 +6,13 @@ use serde_json::Value;
 use serde_with::{serde_as, DisplayFromStr};
 
 pub enum Message {
-    Http(HttpMessage),
+    Http(HttpConfig),
     Stop,
 }
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HttpMessage {
+pub struct HttpConfig {
     #[serde_as(as = "DisplayFromStr")]
     pub method: Method,
 
@@ -24,7 +24,7 @@ pub struct HttpMessage {
     pub json: Option<Value>,
 }
 
-impl HttpMessage {
+impl HttpConfig {
     pub fn new(method: Method, url: Url) -> Self {
         Self {
             method,
@@ -48,9 +48,13 @@ impl HttpMessage {
         self.json = Some(serde_json::to_value(data).unwrap());
         self
     }
+
+    pub fn into_trace(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
 }
 
-impl Display for HttpMessage {
+impl Display for HttpConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", serde_json::to_string(self).unwrap())
     }

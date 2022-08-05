@@ -4,7 +4,7 @@ use crate::{
     config::HttpLayerBuilder,
     message::Message,
     messenger::{messenger, Messenger},
-    IntoHttpMessage,
+    HttpConfig, IntoHttpConfig,
 };
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tracing::{Event, Subscriber};
@@ -14,12 +14,12 @@ use tracing_subscriber::{layer::Context, Layer};
 pub static HTTP_MESSAGE_FIELD_NAME: &str = "http_message";
 pub static MESSAGE_FIELD_NAME: &'static str = "message";
 
-pub struct HttpLayer<T: IntoHttpMessage> {
+pub struct HttpLayer<T: IntoHttpConfig> {
     sender: UnboundedSender<Message>,
     _type: PhantomData<T>,
 }
 
-impl<T: IntoHttpMessage> HttpLayer<T> {
+impl<T: IntoHttpConfig> HttpLayer<T> {
     pub fn builder() -> HttpLayerBuilder<T> {
         HttpLayerBuilder::default()
     }
@@ -43,7 +43,7 @@ impl<T: IntoHttpMessage> HttpLayer<T> {
 impl<S, T> Layer<S> for HttpLayer<T>
 where
     S: Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
-    T: IntoHttpMessage + 'static,
+    T: IntoHttpConfig + 'static,
 {
     fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
         let mut event_visitor = JsonStorage::default();
@@ -52,7 +52,7 @@ where
         let http_message = match event_visitor
             .values()
             .get(HTTP_MESSAGE_FIELD_NAME)
-            .map(|v| v.as_str().map(|s| serde_json::from_str::<T>(s)))
+            .map(|v| v.as_str().map(|s| serde_json::from_str::<HttpConfig>(s)))
         {
             Some(Some(Ok(v))) => v,
             _ => return,
@@ -67,7 +67,7 @@ where
             _ => return,
         };
 
-        let http = http_message.into_http_message(message);
+        let http = dbg!(T::add_message(http_message, message));
 
         let _ = self.sender.send(Message::Http(http));
     }

@@ -1,4 +1,4 @@
-use crate::message::{HttpMessage, Message};
+use crate::message::{HttpConfig, Message};
 use reqwest::Client;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
@@ -19,7 +19,7 @@ impl Messenger {
 }
 
 pub async fn messenger(mut receiver: UnboundedReceiver<Message>, client: Client) {
-    while let Some(Message::Http(HttpMessage {
+    while let Some(Message::Http(HttpConfig {
         method,
         url,
         headers,

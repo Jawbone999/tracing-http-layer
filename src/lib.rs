@@ -1,9 +1,11 @@
 mod config;
-mod into_message;
+mod into_config;
 mod layer;
 mod message;
 mod messenger;
 
-pub use into_message::IntoHttpMessage;
+pub use into_config::IntoHttpConfig;
 pub use layer::HttpLayer;
-pub use message::HttpMessage;
+pub use message::HttpConfig;
+
+pub use reqwest::{IntoUrl, Method, Url};

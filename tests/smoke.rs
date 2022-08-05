@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use reqwest::{Method, Url};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use tokio::test;
 use tracing::info;
-use tracing_http_layer::{HttpLayer, HttpMessage, IntoHttpMessage};
+use tracing_http_layer::{HttpConfig, HttpLayer, IntoHttpConfig};
 use tracing_subscriber::{prelude::*, EnvFilter};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -14,18 +14,27 @@ struct SmokeJson {
     meaning: u8,
 }
 
-impl IntoHttpMessage for SmokeJson {
-    fn into_http_message(self, message: &str) -> HttpMessage {
-        HttpMessage {
+impl IntoHttpConfig for SmokeJson {
+    fn into_http_config(self) -> HttpConfig {
+        HttpConfig {
             method: Method::POST,
             url: Url::parse("http://localhost:3000").unwrap(),
             headers: HashMap::default(),
             json: Some(json!({
-                "message": message,
                 "foo": self.foo,
                 "meaning": self.meaning,
             })),
         }
+    }
+
+    fn add_message(mut http_message: HttpConfig, message: &str) -> HttpConfig {
+        let mut json = http_message.json.take().unwrap_or_default();
+
+        json["message"] = Value::String(message.to_string());
+
+        http_message.json = Some(json);
+
+        http_message
     }
 }
 
@@ -45,7 +54,10 @@ async fn smoke() {
         meaning: 42,
     };
 
-    info!(http_message = data.into_trace(), "Hello!");
+    info!(
+        http_message = data.into_http_config().into_trace(),
+        "Hello!"
+    );
 
     messenger.stop().await;
 }
