@@ -15,7 +15,7 @@ struct SmokeJson {
 }
 
 impl IntoHttpConfig for SmokeJson {
-    fn into_http_config(self) -> HttpConfig {
+    fn into_http_config(&self) -> HttpConfig {
         HttpConfig {
             method: Method::POST,
             url: Url::parse("http://localhost:3000").unwrap(),
