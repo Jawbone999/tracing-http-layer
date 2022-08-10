@@ -1,12 +1,12 @@
 use std::{collections::HashMap, fmt::Display};
 
-use reqwest::{Method, Url};
+use reqwest::{Method, RequestBuilder, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, DisplayFromStr};
 
 pub enum Message {
-    Http(HttpConfig),
+    Http(RequestBuilder),
     Stop,
 }
 
@@ -47,10 +47,6 @@ impl HttpConfig {
     pub fn json<T: Serialize>(mut self, data: &T) -> Self {
         self.json = Some(serde_json::to_value(data).unwrap());
         self
-    }
-
-    pub fn into_trace(&self) -> String {
-        serde_json::to_string(self).unwrap()
     }
 }
 

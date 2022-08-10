@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-
-use reqwest::{Method, Url};
+use reqwest::{Client, RequestBuilder};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
+use std::collections::HashMap;
 use tokio::test;
 use tracing::info;
-use tracing_http_layer::{HttpConfig, HttpLayer, IntoHttpConfig};
+use tracing_http_layer::{HttpLayer, IntoHttpTrace};
 use tracing_subscriber::{prelude::*, EnvFilter};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -14,33 +13,25 @@ struct SmokeJson {
     meaning: u8,
 }
 
-impl IntoHttpConfig for SmokeJson {
-    fn into_http_config(&self) -> HttpConfig {
-        HttpConfig {
-            method: Method::POST,
-            url: Url::parse("http://localhost:3000").unwrap(),
-            headers: HashMap::default(),
-            json: Some(json!({
-                "foo": self.foo,
-                "meaning": self.meaning,
-            })),
-        }
-    }
+impl IntoHttpTrace for SmokeJson {
+    fn handle_event(
+        &self,
+        client: &Client,
+        message: &str,
+        metadata: &HashMap<&str, Value>,
+    ) -> Option<RequestBuilder> {
+        let x = client
+            .post("http://localhost:3000/smoke")
+            .header("message", message)
+            .json(self);
 
-    fn add_message(mut http_message: HttpConfig, message: &str) -> HttpConfig {
-        let mut json = http_message.json.take().unwrap_or_default();
-
-        json["message"] = Value::String(message.to_string());
-
-        http_message.json = Some(json);
-
-        http_message
+        Some(x)
     }
 }
 
 #[test]
 async fn smoke() {
-    let (http_layer, messenger): (HttpLayer<SmokeJson>, _) = HttpLayer::builder().build();
+    let (http_layer, messenger): (HttpLayer<SmokeJson>, _) = HttpLayer::new(None);
     let fmt_layer = tracing_subscriber::fmt::layer().pretty();
 
     tracing_subscriber::registry()
@@ -54,10 +45,7 @@ async fn smoke() {
         meaning: 42,
     };
 
-    info!(
-        http_message = data.into_http_config().into_trace(),
-        "Hello!"
-    );
+    info!(http_trace = data.trace(), "Hello!");
 
     messenger.stop().await;
 }

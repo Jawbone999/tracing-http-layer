@@ -1,5 +1,4 @@
-use crate::message::{HttpConfig, Message};
-use reqwest::Client;
+use crate::message::Message;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
@@ -18,24 +17,8 @@ impl Messenger {
     }
 }
 
-pub async fn messenger(mut receiver: UnboundedReceiver<Message>, client: Client) {
-    while let Some(Message::Http(HttpConfig {
-        method,
-        url,
-        headers,
-        json,
-    })) = receiver.recv().await
-    {
-        let mut req = client.request(method, url);
-
-        for (key, value) in headers.into_iter() {
-            req = req.header(key, value);
-        }
-
-        if let Some(data) = json {
-            req = req.json(&data);
-        }
-
+pub async fn messenger(mut receiver: UnboundedReceiver<Message>) {
+    while let Some(Message::Http(req)) = receiver.recv().await {
         match req.send().await {
             Ok(res) => debug!(?res),
             Err(err) => error!(?err),
