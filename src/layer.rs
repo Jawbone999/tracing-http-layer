@@ -53,7 +53,7 @@ where
             .map(|v| v.as_str().map(|s| serde_json::from_str::<T>(s)))
             .flatten()
         {
-            Some(Ok(v)) => dbg!(v),
+            Some(Ok(v)) => v,
             _ => return,
         };
 

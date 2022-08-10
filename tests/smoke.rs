@@ -20,7 +20,6 @@ impl IntoHttpTrace for SmokeJson {
         message: &str,
         metadata: &HashMap<&str, Value>,
     ) -> Option<RequestBuilder> {
-        dbg!(metadata);
         let x = client
             .post("http://localhost:3000/smoke")
             .header("message", message)
