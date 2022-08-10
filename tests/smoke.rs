@@ -20,6 +20,7 @@ impl IntoHttpTrace for SmokeJson {
         message: &str,
         metadata: &HashMap<&str, Value>,
     ) -> Option<RequestBuilder> {
+        dbg!(metadata);
         let x = client
             .post("http://localhost:3000/smoke")
             .header("message", message)
@@ -45,7 +46,7 @@ async fn smoke() {
         meaning: 42,
     };
 
-    info!(http_trace = data.trace(), "Hello!");
+    info!(http_trace = data.trace(), checked = true, "Hello!");
 
     messenger.stop().await;
 }

@@ -27,7 +27,7 @@ impl<T: IntoHttpTrace> HttpLayer<T> {
         (
             Self {
                 sender: sender.clone(),
-                client: client.clone(),
+                client,
                 _type: PhantomData,
             },
             Messenger {
@@ -51,8 +51,9 @@ where
             .values()
             .get(HTTP_TRACE_FIELD_NAME)
             .map(|v| v.as_str().map(|s| serde_json::from_str::<T>(s)))
+            .flatten()
         {
-            Some(Some(Ok(v))) => dbg!(v),
+            Some(Ok(v)) => dbg!(v),
             _ => return,
         };
 
@@ -60,8 +61,9 @@ where
             .values()
             .get(MESSAGE_FIELD_NAME)
             .map(|v| v.as_str())
+            .flatten()
         {
-            Some(Some(s)) => s,
+            Some(s) => s,
             _ => return,
         };
 

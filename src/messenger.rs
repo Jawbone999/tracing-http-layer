@@ -20,8 +20,12 @@ impl Messenger {
 pub async fn messenger(mut receiver: UnboundedReceiver<Message>) {
     while let Some(Message::Http(req)) = receiver.recv().await {
         match req.send().await {
-            Ok(res) => debug!(?res),
-            Err(err) => error!(?err),
+            Ok(res) => {
+                dbg!(res);
+            }
+            Err(err) => {
+                dbg!(err);
+            }
         }
     }
 }
