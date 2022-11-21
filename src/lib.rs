@@ -27,3 +27,20 @@ pub trait IntoHttpTrace: Debug + Serialize + DeserializeOwned {
         metadata: &HashMap<&str, Value>,
     ) -> Option<RequestBuilder>;
 }
+
+impl<T> IntoHttpTrace for Option<T>
+where
+    T: IntoHttpTrace,
+{
+    fn handle_event(
+        &self,
+        client: &Client,
+        message: &str,
+        metadata: &HashMap<&str, Value>,
+    ) -> Option<RequestBuilder> {
+        match self {
+            Some(inner) => inner.handle_event(client, message, metadata),
+            None => None,
+        }
+    }
+}
